@@ -25,7 +25,7 @@ export function SheetPreview({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div ref={outerRef} className="w-full" style={{ height }}>
+    <div ref={outerRef} className={scale < 1 ? "w-full overflow-hidden" : "w-full"} style={{ height }}>
       <div
         className="mx-auto origin-top-left"
         style={{ width: SHEET_WIDTH, transform: `scale(${scale})` }}
