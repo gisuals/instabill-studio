@@ -15,6 +15,8 @@ export interface DocState {
   mode: DocMode;
   clientName: string;
   clientPhone: string;
+  clientEmail: string;
+  clientAddress: string;
   items: LineItem[];
   paidAmount: number;
   /** Optional discount; 0 = no discount shown. */
@@ -24,9 +26,20 @@ export interface DocState {
   paymentNotes: string;
   /** Manually chosen sequence per document type. null = next number from that type's counter. */
   seq: Record<DocMode, number | null>;
+  /** When false, numbers are typed by hand and saving never moves the automatic counter. */
+  autoNumber: boolean;
   /** ISO yyyy-mm-dd overrides. null = automatic (today / issue + 1 day). */
   issueDate: string | null;
   dueDate: string | null;
+}
+
+/** A saved client profile used to fill documents quickly. */
+export interface ClientProfile {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
 }
 
 export const DOC_PREFIX = "G23923";
@@ -49,6 +62,8 @@ export function createEmptyState(): DocState {
     mode: "invoice",
     clientName: "",
     clientPhone: "",
+    clientEmail: "",
+    clientAddress: "",
     items: [createItem("item-1")],
     paidAmount: 0,
     discountValue: 0,
@@ -56,6 +71,7 @@ export function createEmptyState(): DocState {
     projectDuration: 0,
     paymentNotes: "",
     seq: { invoice: null, receipt: null },
+    autoNumber: true,
     issueDate: null,
     dueDate: null,
   };
@@ -99,6 +115,8 @@ export function normalizeState(raw: unknown): DocState {
     mode: r.mode === "receipt" ? "receipt" : "invoice",
     clientName: str(r.clientName, 200),
     clientPhone: str(r.clientPhone, 30),
+    clientEmail: str(r.clientEmail, 200),
+    clientAddress: str(r.clientAddress, 500),
     items: items.length ? items : base.items,
     paidAmount: Math.max(0, num(r.paidAmount)),
     discountType: r.discountType === "percent" ? "percent" : "amount",
@@ -109,8 +127,42 @@ export function normalizeState(raw: unknown): DocState {
     projectDuration: Math.max(0, Math.round(num(r.projectDuration))),
     paymentNotes: str(r.paymentNotes, 2000),
     seq,
+    autoNumber: r.autoNumber !== false,
     issueDate: isoOrNull(r.issueDate),
     dueDate: isoOrNull(r.dueDate),
+  };
+}
+
+/** Coerce a stored client row into a clean profile (trimmed, length-limited). */
+export function normalizeClient(raw: unknown): ClientProfile | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Partial<Record<keyof ClientProfile, unknown>>;
+  const name = str(r.name, 200).trim();
+  if (!name) return null;
+  return {
+    id: str(r.id, 64),
+    name,
+    phone: str(r.phone, 30).trim(),
+    email: str(r.email, 200).trim(),
+    address: str(r.address, 500).trim(),
+  };
+}
+
+/** Saved client with the same name (case/space-insensitive), if any. */
+export function findClientByName(clients: ClientProfile[], name: string): ClientProfile | undefined {
+  const key = name.trim().toLowerCase();
+  if (!key) return undefined;
+  return clients.find((c) => c.name.trim().toLowerCase() === key);
+}
+
+/** Fills the document's client fields from a saved profile. */
+export function applyClient(state: DocState, client: ClientProfile): DocState {
+  return {
+    ...state,
+    clientName: client.name,
+    clientPhone: client.phone,
+    clientEmail: client.email,
+    clientAddress: client.address,
   };
 }
 
