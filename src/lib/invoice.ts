@@ -15,6 +15,8 @@ export interface DocState {
   mode: DocMode;
   clientName: string;
   clientPhone: string;
+  clientEmail: string;
+  clientAddress: string;
   items: LineItem[];
   paidAmount: number;
   /** Optional discount; 0 = no discount shown. */
@@ -24,9 +26,20 @@ export interface DocState {
   paymentNotes: string;
   /** Manually chosen sequence per document type. null = next number from that type's counter. */
   seq: Record<DocMode, number | null>;
+  /** When false, numbers are typed by hand and saving never moves the automatic counter. */
+  autoNumber: boolean;
   /** ISO yyyy-mm-dd overrides. null = automatic (today / issue + 1 day). */
   issueDate: string | null;
   dueDate: string | null;
+}
+
+/** A saved client profile used to fill documents quickly. */
+export interface ClientProfile {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
 }
 
 export const DOC_PREFIX = "G23923";
@@ -49,6 +62,8 @@ export function createEmptyState(): DocState {
     mode: "invoice",
     clientName: "",
     clientPhone: "",
+    clientEmail: "",
+    clientAddress: "",
     items: [createItem("item-1")],
     paidAmount: 0,
     discountValue: 0,
@@ -56,6 +71,7 @@ export function createEmptyState(): DocState {
     projectDuration: 0,
     paymentNotes: "",
     seq: { invoice: null, receipt: null },
+    autoNumber: true,
     issueDate: null,
     dueDate: null,
   };
@@ -99,6 +115,8 @@ export function normalizeState(raw: unknown): DocState {
     mode: r.mode === "receipt" ? "receipt" : "invoice",
     clientName: str(r.clientName, 200),
     clientPhone: str(r.clientPhone, 30),
+    clientEmail: str(r.clientEmail, 200),
+    clientAddress: str(r.clientAddress, 500),
     items: items.length ? items : base.items,
     paidAmount: Math.max(0, num(r.paidAmount)),
     discountType: r.discountType === "percent" ? "percent" : "amount",
@@ -109,8 +127,42 @@ export function normalizeState(raw: unknown): DocState {
     projectDuration: Math.max(0, Math.round(num(r.projectDuration))),
     paymentNotes: str(r.paymentNotes, 2000),
     seq,
+    autoNumber: r.autoNumber !== false,
     issueDate: isoOrNull(r.issueDate),
     dueDate: isoOrNull(r.dueDate),
+  };
+}
+
+/** Coerce a stored client row into a clean profile (trimmed, length-limited). */
+export function normalizeClient(raw: unknown): ClientProfile | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Partial<Record<keyof ClientProfile, unknown>>;
+  const name = str(r.name, 200).trim();
+  if (!name) return null;
+  return {
+    id: str(r.id, 64),
+    name,
+    phone: str(r.phone, 30).trim(),
+    email: str(r.email, 200).trim(),
+    address: str(r.address, 500).trim(),
+  };
+}
+
+/** Saved client with the same name (case/space-insensitive), if any. */
+export function findClientByName(clients: ClientProfile[], name: string): ClientProfile | undefined {
+  const key = name.trim().toLowerCase();
+  if (!key) return undefined;
+  return clients.find((c) => c.name.trim().toLowerCase() === key);
+}
+
+/** Fills the document's client fields from a saved profile. */
+export function applyClient(state: DocState, client: ClientProfile): DocState {
+  return {
+    ...state,
+    clientName: client.name,
+    clientPhone: client.phone,
+    clientEmail: client.email,
+    clientAddress: client.address,
   };
 }
 
@@ -191,6 +243,29 @@ export function resolveSeq(state: DocState, lastSeq: number): number {
   return state.seq[state.mode] ?? lastSeq + 1;
 }
 
+/** Saving only moves the automatic counter while automatic numbering is on. */
+export function shouldAdvanceCounter(state: DocState): boolean {
+  return state.autoNumber;
+}
+
+/**
+ * Turning automatic numbering on/off. Off: the number shown now is fixed so it can be edited.
+ * On: hand-typed numbers are cleared so both types follow their counters again.
+ */
+export function setAutoNumber(state: DocState, auto: boolean, currentSeq: number): DocState {
+  if (auto) return { ...state, autoNumber: true, seq: { invoice: null, receipt: null } };
+  return { ...state, autoNumber: false, seq: { ...state.seq, [state.mode]: currentSeq } };
+}
+
+/**
+ * Numbers for a fresh document. With automatic numbering the counters decide; with it off,
+ * the current type continues from the last hand-typed number so it isn't reused by accident.
+ */
+export function seqForNewDocument(state: DocState, currentSeq: number): DocState["seq"] {
+  if (state.autoNumber) return { invoice: null, receipt: null };
+  return { ...state.seq, [state.mode]: Math.min(99999, currentSeq + 1) };
+}
+
 // ---------- Money ----------
 
 export function lineAmount(item: LineItem): number {
@@ -220,6 +295,25 @@ export function discountLabel(state: DocState): string {
   return state.discountType === "percent" && state.discountValue > 0
     ? `Discount (${state.discountValue}%)`
     : "Discount";
+}
+
+export type ReceiptPaymentStatus =
+  | { kind: "none" }
+  | { kind: "settled" }
+  | { kind: "balance"; balance: number }
+  | { kind: "overpaid"; excess: number };
+
+/**
+ * Receipt rule: once a paid amount is entered, it is compared with the invoice total
+ * (after any discount). Equal = fully paid; less = a Balance row shows the remaining amount.
+ */
+export function receiptPaymentStatus(state: DocState): ReceiptPaymentStatus {
+  const { subTotal, paid } = computeTotals(state);
+  if (paid <= 0) return { kind: "none" };
+  const diff = round2(subTotal - paid);
+  if (diff === 0) return { kind: "settled" };
+  if (diff > 0) return { kind: "balance", balance: diff };
+  return { kind: "overpaid", excess: -diff };
 }
 
 export function formatMoney(n: number): string {
@@ -272,6 +366,8 @@ export function buildWhatsAppText(state: DocState, docNumber: string, today: Dat
     }
     lines.push(`Invoice Total: ₦${formatMoney(subTotal)}`);
     lines.push(`*Total Paid: ₦${formatMoney(paid)}*`);
+    const status = receiptPaymentStatus(state);
+    if (status.kind === "balance") lines.push(`*Balance: ₦${formatMoney(status.balance)}*`);
     if (state.projectDuration > 0) lines.push(`Project Duration: ${state.projectDuration} Days`);
   }
   lines.push("");

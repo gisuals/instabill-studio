@@ -15,6 +15,13 @@
       "when": 1792708890695,
       "tag": "0001_separate_counters_per_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792709944197,
+      "tag": "0002_client_profiles_and_manual_numbering",
+      "breakpoints": true
     }
   ]
 }

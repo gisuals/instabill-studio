@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      clients: {
+        Row: {
+          address: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name: string
+          phone?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       document_counters: {
         Row: {
           last_seq: number
@@ -111,6 +141,7 @@ export type Database = {
     Functions: {
       commit_document: {
         Args: {
+          p_advance?: boolean
           p_client_name: string
           p_data: Json
           p_doc_number: string
