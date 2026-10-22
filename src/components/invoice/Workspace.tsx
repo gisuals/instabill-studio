@@ -188,14 +188,14 @@ export function Workspace() {
         .save();
 
       const locked: DocState = { ...state, seq: { ...state.seq, [state.mode]: seq } };
-      const { total } = computeTotals(state);
+      const { subTotal } = computeTotals(state);
       const result = await commitDocument({
         docNumber,
         year,
         seq,
         mode: state.mode,
         clientName: state.clientName.trim(),
-        total,
+        total: subTotal,
         data: locked,
       });
       setState(locked);
