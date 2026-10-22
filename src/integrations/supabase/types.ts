@@ -14,13 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      document_counters: {
+        Row: {
+          last_seq: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          last_seq?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          last_seq?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      documents: {
+        Row: {
+          client_name: string
+          created_at: string
+          data: Json
+          doc_number: string
+          id: string
+          mode: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          client_name?: string
+          created_at?: string
+          data?: Json
+          doc_number: string
+          id?: string
+          mode: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          client_name?: string
+          created_at?: string
+          data?: Json
+          doc_number?: string
+          id?: string
+          mode?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      drafts: {
+        Row: {
+          data: Json
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          data?: Json
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          data?: Json
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      commit_document: {
+        Args: {
+          p_client_name: string
+          p_data: Json
+          p_doc_number: string
+          p_mode: string
+          p_seq: number
+          p_total: number
+          p_year: number
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
