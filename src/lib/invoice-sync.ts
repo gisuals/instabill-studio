@@ -1,11 +1,11 @@
 // Cloud sync with a local offline fallback for drafts, counters and history.
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
-import { normalizeState, type DocMode, type DocState } from "./invoice";
+import { counterKey, normalizeState, type DocMode, type DocState } from "./invoice";
 
 const DRAFT_KEY = "gisuals:draft:v1";
 const OUTBOX_KEY = "gisuals:outbox:v1";
-const COUNTERS_KEY = "gisuals:counters:v1";
+const COUNTERS_KEY = "gisuals:counters:v2";
 const HISTORY_KEY = "gisuals:history:v1";
 
 export interface StoredDraft {
@@ -87,22 +87,27 @@ export function loadLocalCounters(): Record<string, number> {
   return readJSON<Record<string, number>>(COUNTERS_KEY, {});
 }
 
-function rememberCounter(year: number, lastSeq: number) {
+function rememberCounter(year: number, mode: DocMode, lastSeq: number) {
   const all = loadLocalCounters();
-  all[String(year)] = Math.max(all[String(year)] ?? 0, lastSeq);
+  const key = counterKey(year, mode);
+  all[key] = Math.max(all[key] ?? 0, lastSeq);
   writeJSON(COUNTERS_KEY, all);
 }
 
-export async function fetchLastSeq(year: number): Promise<number> {
+/** Last used sequence for invoices and receipts in a given year. */
+export async function fetchLastSeqs(year: number): Promise<Record<DocMode, number>> {
   const { data, error } = await supabase
-    .from("document_counters")
-    .select("last_seq")
-    .eq("year", year)
-    .maybeSingle();
+    .from("mode_counters")
+    .select("mode, last_seq")
+    .eq("year", year);
   if (error) throw error;
-  const last = data?.last_seq ?? 0;
-  rememberCounter(year, last);
-  return Math.max(last, loadLocalCounters()[String(year)] ?? 0);
+  const result: Record<DocMode, number> = { invoice: 0, receipt: 0 };
+  for (const mode of ["invoice", "receipt"] as const) {
+    const remote = data?.find((d) => d.mode === mode)?.last_seq ?? 0;
+    rememberCounter(year, mode, remote);
+    result[mode] = Math.max(remote, loadLocalCounters()[counterKey(year, mode)] ?? 0);
+  }
+  return result;
 }
 
 // ---------- Documents ----------
@@ -122,7 +127,9 @@ async function commitRemote(p: CommitPayload): Promise<number> {
 }
 
 function addLocalHistory(p: CommitPayload) {
-  const list = readJSON<HistoryEntry[]>(HISTORY_KEY, []).filter((h) => h.docNumber !== p.docNumber);
+  const list = readJSON<HistoryEntry[]>(HISTORY_KEY, []).filter(
+    (h) => !(h.docNumber === p.docNumber && h.mode === p.mode),
+  );
   list.unshift({
     docNumber: p.docNumber,
     mode: p.mode,
@@ -137,13 +144,15 @@ function addLocalHistory(p: CommitPayload) {
 /** Saves a document. Returns the counter's last sequence and whether it reached the cloud. */
 export async function commitDocument(p: CommitPayload): Promise<{ lastSeq: number; synced: boolean }> {
   addLocalHistory(p);
-  rememberCounter(p.year, p.seq);
+  rememberCounter(p.year, p.mode, p.seq);
   try {
     const lastSeq = await commitRemote(p);
-    rememberCounter(p.year, lastSeq);
+    rememberCounter(p.year, p.mode, lastSeq);
     return { lastSeq, synced: true };
   } catch {
-    const outbox = readJSON<CommitPayload[]>(OUTBOX_KEY, []).filter((o) => o.docNumber !== p.docNumber);
+    const outbox = readJSON<CommitPayload[]>(OUTBOX_KEY, []).filter(
+      (o) => !(o.docNumber === p.docNumber && o.mode === p.mode),
+    );
     outbox.push(p);
     writeJSON(OUTBOX_KEY, outbox);
     return { lastSeq: p.seq, synced: false };

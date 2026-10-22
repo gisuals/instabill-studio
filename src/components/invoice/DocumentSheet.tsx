@@ -2,6 +2,7 @@ import { forwardRef } from "react";
 import {
   BUSINESS,
   computeTotals,
+  discountLabel,
   formatLongDate,
   formatMoney,
   lineAmount,
@@ -59,7 +60,14 @@ const PILLS = [
 export const DocumentSheet = forwardRef<HTMLDivElement, DocumentSheetProps>(
   ({ state, docNumber, issueDate, dueDate }, ref) => {
     const isInvoice = state.mode === "invoice";
-    const { total, subTotal, paid } = computeTotals(state);
+    const { total, discount, subTotal, paid } = computeTotals(state);
+    const discountRow =
+      discount > 0 ? (
+        <div className="flex justify-between px-4 py-2">
+          <span className="font-semibold text-doc-ink">{discountLabel(state)}</span>
+          <span className="text-doc-ink">−₦{formatMoney(discount)}</span>
+        </div>
+      ) : null;
     const items = state.items;
 
     return (
@@ -144,6 +152,7 @@ export const DocumentSheet = forwardRef<HTMLDivElement, DocumentSheetProps>(
                     <span className="font-semibold text-doc-ink">Total</span>
                     <span className="text-doc-ink">₦{formatMoney(total)}</span>
                   </div>
+                  {discountRow}
                   <div className="flex justify-between rounded-[4px] bg-doc-accent px-4 py-2.5 font-bold text-doc-on-accent">
                     <span>Sub Total</span>
                     <span>₦{formatMoney(subTotal)}</span>
@@ -155,9 +164,16 @@ export const DocumentSheet = forwardRef<HTMLDivElement, DocumentSheetProps>(
                 </>
               ) : (
                 <>
+                  {discount > 0 && (
+                    <div className="flex justify-between px-4 py-2">
+                      <span className="font-semibold text-doc-ink">Total</span>
+                      <span className="text-doc-ink">₦{formatMoney(total)}</span>
+                    </div>
+                  )}
+                  {discountRow}
                   <div className="flex justify-between rounded-[4px] bg-doc-accent px-4 py-2.5 font-bold text-doc-on-accent">
                     <span>Invoice Total</span>
-                    <span>₦{formatMoney(total)}</span>
+                    <span>₦{formatMoney(subTotal)}</span>
                   </div>
                   <div className="flex justify-between px-4 py-2.5">
                     <span className="font-bold text-doc-ink">Total Paid</span>

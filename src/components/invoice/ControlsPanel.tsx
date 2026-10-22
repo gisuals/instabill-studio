@@ -1,10 +1,11 @@
-import { FilePlus2, History, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { FilePlus2, History, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   DOC_PREFIX,
+  computeTotals,
   createItem,
   formatMoney,
   lineAmount,
@@ -60,6 +61,7 @@ export function ControlsPanel({
   showModeToggle = false,
 }: ControlsPanelProps) {
   const isInvoice = state.mode === "invoice";
+  const { discount } = computeTotals(state);
 
   const updateItem = (id: string, patch: Partial<LineItem>) =>
     update((s) => ({ ...s, items: s.items.map((it) => (it.id === id ? { ...it, ...patch } : it)) }));
@@ -99,14 +101,15 @@ export function ControlsPanel({
                 value={seq}
                 onChange={(e) => {
                   const n = Math.round(parseFloat(e.target.value));
-                  update({ seq: Number.isFinite(n) && n > 0 ? Math.min(n, 99999) : null });
+                  const value = Number.isFinite(n) && n > 0 ? Math.min(n, 99999) : null;
+                  update((s) => ({ ...s, seq: { ...s.seq, [s.mode]: value } }));
                 }}
                 className="w-full min-w-0 bg-transparent px-2 font-mono text-sm outline-none"
               />
-              {state.seq !== null && (
+              {state.seq[state.mode] !== null && (
                 <button
                   type="button"
-                  onClick={() => update({ seq: null })}
+                  onClick={() => update((s) => ({ ...s, seq: { ...s.seq, [s.mode]: null } }))}
                   className="flex items-center gap-1 border-l border-input px-2.5 text-xs text-muted-foreground hover:text-foreground"
                   title="Use next number automatically"
                 >
@@ -115,8 +118,8 @@ export function ControlsPanel({
               )}
             </div>
             <p className="mt-1.5 text-xs text-muted-foreground">
-              {state.seq === null
-                ? `Auto: next number after ${String(lastSeq).padStart(2, "0")}`
+              {state.seq[state.mode] === null
+                ? `Auto: next ${isInvoice ? "invoice" : "receipt"} number after ${String(lastSeq).padStart(2, "0")}`
                 : "Fixed number for this document — tap Auto for the next one"}
             </p>
           </div>
@@ -270,6 +273,65 @@ export function ControlsPanel({
         <SectionTitle>{isInvoice ? "Payment" : "Receipt details"}</SectionTitle>
         <div className="space-y-3">
           <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <Label htmlFor="discount" className="text-xs">
+                Discount <span className="text-muted-foreground">(optional)</span>
+              </Label>
+              {state.discountValue > 0 && (
+                <button
+                  type="button"
+                  onClick={() => update({ discountValue: 0 })}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" /> Remove
+                </button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                id="discount"
+                type="number"
+                min={0}
+                max={state.discountType === "percent" ? 100 : undefined}
+                inputMode="decimal"
+                placeholder="0"
+                value={numberValue(state.discountValue)}
+                onChange={(e) => {
+                  const v = parseNumber(e.target.value);
+                  update({ discountValue: state.discountType === "percent" ? Math.min(100, v) : v });
+                }}
+              />
+              <div role="group" aria-label="Discount type" className="flex shrink-0 rounded-md border border-input bg-card p-0.5">
+                {(["amount", "percent"] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    aria-pressed={state.discountType === t}
+                    onClick={() =>
+                      update((s) => ({
+                        ...s,
+                        discountType: t,
+                        discountValue: t === "percent" ? Math.min(100, s.discountValue) : s.discountValue,
+                      }))
+                    }
+                    className={
+                      state.discountType === t
+                        ? "rounded px-3 text-xs font-bold bg-primary text-primary-foreground"
+                        : "rounded px-3 text-xs font-medium text-muted-foreground hover:text-foreground"
+                    }
+                  >
+                    {t === "amount" ? "₦" : "%"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {discount > 0
+                ? `−₦${formatMoney(discount)} will show on the ${isInvoice ? "invoice" : "receipt"}.`
+                : "Leave empty for no discount."}
+            </p>
+          </div>
+          <div>
             <Label htmlFor="paid" className="mb-1.5 block text-xs">
               {isInvoice ? "Amount paid (₦)" : "Total paid (₦)"}
             </Label>
@@ -333,7 +395,7 @@ export function ControlsPanel({
             </SectionTitle>
             <ul className="divide-y rounded-lg border bg-card">
               {history.map((h) => (
-                <li key={h.docNumber}>
+                <li key={`${h.docNumber}-${h.mode}`}>
                   <button
                     type="button"
                     onClick={() => onLoadHistory(h)}

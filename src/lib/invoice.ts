@@ -1,6 +1,7 @@
 // Pure document logic for the Gisuals invoice/receipt generator.
 
 export type DocMode = "invoice" | "receipt";
+export type DiscountType = "amount" | "percent";
 
 export interface LineItem {
   id: string;
@@ -16,10 +17,13 @@ export interface DocState {
   clientPhone: string;
   items: LineItem[];
   paidAmount: number;
+  /** Optional discount; 0 = no discount shown. */
+  discountValue: number;
+  discountType: DiscountType;
   projectDuration: number;
   paymentNotes: string;
-  /** Manually chosen sequence. null = use the next number from the shared counter. */
-  seq: number | null;
+  /** Manually chosen sequence per document type. null = next number from that type's counter. */
+  seq: Record<DocMode, number | null>;
   /** ISO yyyy-mm-dd overrides. null = automatic (today / issue + 1 day). */
   issueDate: string | null;
   dueDate: string | null;
@@ -47,9 +51,11 @@ export function createEmptyState(): DocState {
     clientPhone: "",
     items: [createItem("item-1")],
     paidAmount: 0,
+    discountValue: 0,
+    discountType: "amount",
     projectDuration: 0,
     paymentNotes: "",
-    seq: null,
+    seq: { invoice: null, receipt: null },
     issueDate: null,
     dueDate: null,
   };
@@ -85,15 +91,21 @@ export function normalizeState(raw: unknown): DocState {
         };
       })
     : base.items;
-  const seqRaw = r.seq;
-  const seq =
-    seqRaw === null || seqRaw === undefined ? null : Math.min(99999, Math.max(1, Math.round(num(seqRaw, 1))));
+  const clampSeq = (v: unknown) =>
+    v === null || v === undefined ? null : Math.min(99999, Math.max(1, Math.round(num(v, 1))));
+  const seqRaw = (r.seq && typeof r.seq === "object" ? r.seq : {}) as Partial<Record<DocMode, unknown>>;
+  const seq = { invoice: clampSeq(seqRaw.invoice), receipt: clampSeq(seqRaw.receipt) };
   return {
     mode: r.mode === "receipt" ? "receipt" : "invoice",
     clientName: str(r.clientName, 200),
     clientPhone: str(r.clientPhone, 30),
     items: items.length ? items : base.items,
     paidAmount: Math.max(0, num(r.paidAmount)),
+    discountType: r.discountType === "percent" ? "percent" : "amount",
+    discountValue:
+      r.discountType === "percent"
+        ? Math.min(100, Math.max(0, num(r.discountValue)))
+        : Math.max(0, num(r.discountValue)),
     projectDuration: Math.max(0, Math.round(num(r.projectDuration))),
     paymentNotes: str(r.paymentNotes, 2000),
     seq,
@@ -169,9 +181,14 @@ export function formatDocNumber(year: number, seq: number): string {
   return `${DOC_PREFIX}-${year}-${String(seq).padStart(2, "0")}`;
 }
 
-/** The sequence to use: manual override, otherwise the counter's next value. */
+/** Counters are kept separately per year and document type. */
+export function counterKey(year: number, mode: DocMode): string {
+  return `${year}:${mode}`;
+}
+
+/** The sequence to use for the current type: manual override, otherwise that counter's next value. */
 export function resolveSeq(state: DocState, lastSeq: number): number {
-  return state.seq ?? lastSeq + 1;
+  return state.seq[state.mode] ?? lastSeq + 1;
 }
 
 // ---------- Money ----------
@@ -180,10 +197,29 @@ export function lineAmount(item: LineItem): number {
   return Math.round(item.qty * item.unitPrice * 100) / 100;
 }
 
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * total    = sum of line items
+ * discount = optional discount (fixed ₦ or % of total, never more than total)
+ * subTotal = total − discount (the amount the client owes overall)
+ */
 export function computeTotals(state: DocState) {
-  const total = Math.round(state.items.reduce((sum, it) => sum + lineAmount(it), 0) * 100) / 100;
+  const total = round2(state.items.reduce((sum, it) => sum + lineAmount(it), 0));
+  const rawDiscount =
+    state.discountType === "percent"
+      ? (total * Math.min(100, Math.max(0, state.discountValue))) / 100
+      : Math.max(0, state.discountValue);
+  const discount = round2(Math.min(total, rawDiscount));
+  const subTotal = round2(total - discount);
   const paid = state.paidAmount;
-  return { total, subTotal: total, paid, balance: Math.max(0, Math.round((total - paid) * 100) / 100) };
+  return { total, discount, subTotal, paid, balance: Math.max(0, round2(subTotal - paid)) };
+}
+
+export function discountLabel(state: DocState): string {
+  return state.discountType === "percent" && state.discountValue > 0
+    ? `Discount (${state.discountValue}%)`
+    : "Discount";
 }
 
 export function formatMoney(n: number): string {
@@ -202,7 +238,7 @@ export function normalizeWhatsAppNumber(phone: string): string {
 
 export function buildWhatsAppText(state: DocState, docNumber: string, today: Date): string {
   const { issue, due } = resolveDates(state, today);
-  const { total, paid, balance } = computeTotals(state);
+  const { total, discount, subTotal, paid, balance } = computeTotals(state);
   const isInvoice = state.mode === "invoice";
   const lines: string[] = [];
   lines.push(`*GISUALS — ${isInvoice ? "INVOICE" : "RECEIPT"}*`);
@@ -220,13 +256,21 @@ export function buildWhatsAppText(state: DocState, docNumber: string, today: Dat
   lines.push("");
   if (isInvoice) {
     lines.push(`Total: ₦${formatMoney(total)}`);
+    if (discount > 0) {
+      lines.push(`${discountLabel(state)}: −₦${formatMoney(discount)}`);
+      lines.push(`Sub Total: ₦${formatMoney(subTotal)}`);
+    }
     lines.push(`Paid: ₦${formatMoney(paid)}`);
     lines.push(`*Balance Due: ₦${formatMoney(balance)}*`);
     lines.push("");
     lines.push(`Payment: ${BUSINESS.bank} · ${BUSINESS.accountNumber} · ${BUSINESS.accountName}`);
     if (state.paymentNotes.trim()) lines.push(state.paymentNotes.trim());
   } else {
-    lines.push(`Invoice Total: ₦${formatMoney(total)}`);
+    if (discount > 0) {
+      lines.push(`Total: ₦${formatMoney(total)}`);
+      lines.push(`${discountLabel(state)}: −₦${formatMoney(discount)}`);
+    }
+    lines.push(`Invoice Total: ₦${formatMoney(subTotal)}`);
     lines.push(`*Total Paid: ₦${formatMoney(paid)}*`);
     if (state.projectDuration > 0) lines.push(`Project Duration: ${state.projectDuration} Days`);
   }

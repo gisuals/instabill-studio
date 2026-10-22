@@ -83,6 +83,27 @@ export type Database = {
         }
         Relationships: []
       }
+      mode_counters: {
+        Row: {
+          last_seq: number
+          mode: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          last_seq?: number
+          mode: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          last_seq?: number
+          mode?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -8,6 +8,13 @@
       "when": 1792707847110,
       "tag": "0000_gisuals_documents",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792708890695,
+      "tag": "0001_separate_counters_per_mode",
+      "breakpoints": true
     }
   ]
 }
