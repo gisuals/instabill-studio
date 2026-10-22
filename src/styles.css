@@ -5,20 +5,17 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system definition.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ * Gisuals design system.
+ * App chrome: warm studio gray, charcoal ink bar, vibrant orange accent.
+ * Document canvas: pure white sheet with brand orange (#FF7A00), dark text
+ * (#1A1A1A) and muted gray (#666666) — exposed as --doc-* tokens.
+ * All colors use oklch.
  */
 
 @theme inline {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -34,6 +31,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -46,6 +44,22 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-raised: var(--ink-raised);
+  --color-success: var(--success);
+  --color-whatsapp: var(--whatsapp);
+  --color-whatsapp-foreground: var(--whatsapp-foreground);
+
+  /* Document canvas */
+  --color-doc-paper: var(--doc-paper);
+  --color-doc-ink: var(--doc-ink);
+  --color-doc-muted: var(--doc-muted);
+  --color-doc-accent: var(--doc-accent);
+  --color-doc-on-accent: var(--doc-on-accent);
+  --color-doc-rule: var(--doc-rule);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -59,77 +73,68 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  --shadow-sheet: var(--shadow-sheet-value);
+  --shadow-float: var(--shadow-float-value);
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  --radius: 0.75rem;
+
+  --background: oklch(0.955 0.006 70);
+  --foreground: oklch(0.2178 0 0);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.2178 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --popover-foreground: oklch(0.2178 0 0);
+  --primary: oklch(0.723 0.1897 50.54);
+  --primary-foreground: oklch(1 0 0);
+  --primary-soft: oklch(0.973 0.0178 64.94);
+  --secondary: oklch(0.93 0.007 70);
+  --secondary-foreground: oklch(0.2178 0 0);
+  --muted: oklch(0.94 0.006 70);
+  --muted-foreground: oklch(0.5103 0 0);
+  --accent: oklch(0.973 0.0178 64.94);
+  --accent-foreground: oklch(0.52 0.15 48);
+  --destructive: oklch(0.577 0.215 27.325);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.9 0.008 70);
+  --input: oklch(0.88 0.008 70);
+  --ring: oklch(0.723 0.1897 50.54);
+  --success: oklch(0.62 0.15 150);
+
+  --ink: oklch(0.2178 0 0);
+  --ink-foreground: oklch(0.97 0.004 70);
+  --ink-muted: oklch(0.68 0.005 70);
+  --ink-raised: oklch(0.29 0 0);
+
+  --whatsapp: oklch(0.63 0.17 152);
+  --whatsapp-foreground: oklch(1 0 0);
+
+  --doc-paper: oklch(1 0 0);
+  --doc-ink: oklch(0.2178 0 0);
+  --doc-muted: oklch(0.5103 0 0);
+  --doc-accent: oklch(0.723 0.1897 50.54);
+  --doc-on-accent: oklch(1 0 0);
+  --doc-rule: oklch(0.9249 0 0);
+
+  --shadow-sheet-value:
+    0 1px 2px oklch(0.2178 0 0 / 6%), 0 24px 60px -24px oklch(0.2178 0 0 / 28%);
+  --shadow-float-value: 0 12px 32px -12px oklch(0.2178 0 0 / 40%);
+
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
-}
-
-.dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --sidebar: oklch(0.985 0.003 70);
+  --sidebar-foreground: oklch(0.2178 0 0);
+  --sidebar-primary: oklch(0.723 0.1897 50.54);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.973 0.0178 64.94);
+  --sidebar-accent-foreground: oklch(0.2178 0 0);
+  --sidebar-border: oklch(0.9 0.008 70);
+  --sidebar-ring: oklch(0.723 0.1897 50.54);
 }
 
 @layer base {
@@ -137,8 +142,52 @@
     border-color: var(--color-border);
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Hide number spinners for cleaner money inputs */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}
+
+/* The document sheet keeps its own neutral rules so captures stay pixel-true */
+@utility doc-sheet {
+  background-color: var(--doc-paper);
+  color: var(--doc-ink);
+  font-family: var(--font-sans);
+  /* Canvas text drawing ignores kerning; match it so PDF spacing equals the preview */
+  font-kerning: none;
+  font-variant-ligatures: none;
+  & * {
+    border-color: var(--doc-rule);
+  }
+}
+
+@utility workspace-grid {
+  background-color: var(--background);
+  background-image: radial-gradient(oklch(0.2178 0 0 / 7%) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: var(--doc-paper);
   }
 }

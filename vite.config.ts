@@ -12,4 +12,11 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    resolve: {
+      // html2pdf.js loads "html2canvas", which cannot read modern oklch colors.
+      // html2canvas-pro is a drop-in fork that can.
+      alias: { html2canvas: "html2canvas-pro" },
+    },
+  },
 });
