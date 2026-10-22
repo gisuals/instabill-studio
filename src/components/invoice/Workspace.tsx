@@ -279,7 +279,7 @@ export function Workspace() {
         </aside>
 
         {/* Preview */}
-        <main className="workspace-grid flex-1 px-3 pb-32 pt-6 sm:px-6 lg:px-10 lg:pb-12 lg:pt-10">
+        <main className="workspace-grid min-w-0 flex-1 px-3 pb-32 pt-6 sm:px-6 lg:px-10 lg:pb-12 lg:pt-10">
           <div className="mx-auto max-w-[794px]">
             <div className="no-print mb-3 flex items-center justify-between text-xs text-muted-foreground">
               <span className="font-mono">{docNumber}</span>
