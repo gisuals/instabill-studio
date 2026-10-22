@@ -99,14 +99,15 @@ export function ControlsPanel({
                 value={seq}
                 onChange={(e) => {
                   const n = Math.round(parseFloat(e.target.value));
-                  update({ seq: Number.isFinite(n) && n > 0 ? Math.min(n, 99999) : null });
+                  const value = Number.isFinite(n) && n > 0 ? Math.min(n, 99999) : null;
+                  update((s) => ({ ...s, seq: { ...s.seq, [s.mode]: value } }));
                 }}
                 className="w-full min-w-0 bg-transparent px-2 font-mono text-sm outline-none"
               />
-              {state.seq !== null && (
+              {state.seq[state.mode] !== null && (
                 <button
                   type="button"
-                  onClick={() => update({ seq: null })}
+                  onClick={() => update((s) => ({ ...s, seq: { ...s.seq, [s.mode]: null } }))}
                   className="flex items-center gap-1 border-l border-input px-2.5 text-xs text-muted-foreground hover:text-foreground"
                   title="Use next number automatically"
                 >
@@ -115,8 +116,8 @@ export function ControlsPanel({
               )}
             </div>
             <p className="mt-1.5 text-xs text-muted-foreground">
-              {state.seq === null
-                ? `Auto: next number after ${String(lastSeq).padStart(2, "0")}`
+              {state.seq[state.mode] === null
+                ? `Auto: next ${isInvoice ? "invoice" : "receipt"} number after ${String(lastSeq).padStart(2, "0")}`
                 : "Fixed number for this document — tap Auto for the next one"}
             </p>
           </div>
@@ -333,7 +334,7 @@ export function ControlsPanel({
             </SectionTitle>
             <ul className="divide-y rounded-lg border bg-card">
               {history.map((h) => (
-                <li key={h.docNumber}>
+                <li key={`${h.docNumber}-${h.mode}`}>
                   <button
                     type="button"
                     onClick={() => onLoadHistory(h)}

@@ -18,8 +18,8 @@ export interface DocState {
   paidAmount: number;
   projectDuration: number;
   paymentNotes: string;
-  /** Manually chosen sequence. null = use the next number from the shared counter. */
-  seq: number | null;
+  /** Manually chosen sequence per document type. null = next number from that type's counter. */
+  seq: Record<DocMode, number | null>;
   /** ISO yyyy-mm-dd overrides. null = automatic (today / issue + 1 day). */
   issueDate: string | null;
   dueDate: string | null;
@@ -49,7 +49,7 @@ export function createEmptyState(): DocState {
     paidAmount: 0,
     projectDuration: 0,
     paymentNotes: "",
-    seq: null,
+    seq: { invoice: null, receipt: null },
     issueDate: null,
     dueDate: null,
   };
@@ -85,9 +85,10 @@ export function normalizeState(raw: unknown): DocState {
         };
       })
     : base.items;
-  const seqRaw = r.seq;
-  const seq =
-    seqRaw === null || seqRaw === undefined ? null : Math.min(99999, Math.max(1, Math.round(num(seqRaw, 1))));
+  const clampSeq = (v: unknown) =>
+    v === null || v === undefined ? null : Math.min(99999, Math.max(1, Math.round(num(v, 1))));
+  const seqRaw = (r.seq && typeof r.seq === "object" ? r.seq : {}) as Partial<Record<DocMode, unknown>>;
+  const seq = { invoice: clampSeq(seqRaw.invoice), receipt: clampSeq(seqRaw.receipt) };
   return {
     mode: r.mode === "receipt" ? "receipt" : "invoice",
     clientName: str(r.clientName, 200),
@@ -169,9 +170,14 @@ export function formatDocNumber(year: number, seq: number): string {
   return `${DOC_PREFIX}-${year}-${String(seq).padStart(2, "0")}`;
 }
 
-/** The sequence to use: manual override, otherwise the counter's next value. */
+/** Counters are kept separately per year and document type. */
+export function counterKey(year: number, mode: DocMode): string {
+  return `${year}:${mode}`;
+}
+
+/** The sequence to use for the current type: manual override, otherwise that counter's next value. */
 export function resolveSeq(state: DocState, lastSeq: number): number {
-  return state.seq ?? lastSeq + 1;
+  return state.seq[state.mode] ?? lastSeq + 1;
 }
 
 // ---------- Money ----------

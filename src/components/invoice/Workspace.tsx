@@ -12,6 +12,7 @@ import {
 import {
   buildWhatsAppUrl,
   computeTotals,
+  counterKey,
   createEmptyState,
   formatDocNumber,
   resolveDates,
@@ -21,7 +22,7 @@ import {
 import {
   commitDocument,
   fetchHistory,
-  fetchLastSeq,
+  fetchLastSeqs,
   fetchRemoteDraft,
   flushOutbox,
   loadLocalCounters,
@@ -52,7 +53,7 @@ export function Workspace() {
 
   const { issue, due } = resolveDates(state, today);
   const year = issue.getFullYear();
-  const lastSeq = counters[String(year)] ?? 0;
+  const lastSeq = counters[counterKey(year, state.mode)] ?? 0;
   const seq = resolveSeq(state, lastSeq);
   const docNumber = formatDocNumber(year, seq);
 
@@ -62,8 +63,15 @@ export function Workspace() {
 
   const refreshCounter = useCallback(async (y: number) => {
     try {
-      const last = await fetchLastSeq(y);
-      setCounters((c) => ({ ...c, [String(y)]: Math.max(c[String(y)] ?? 0, last) }));
+      const last = await fetchLastSeqs(y);
+      setCounters((c) => {
+        const next = { ...c };
+        for (const mode of ["invoice", "receipt"] as const) {
+          const key = counterKey(y, mode);
+          next[key] = Math.max(next[key] ?? 0, last[mode]);
+        }
+        return next;
+      });
     } catch {
       /* keep local value */
     }
@@ -179,7 +187,7 @@ export function Workspace() {
         .from(el)
         .save();
 
-      const locked: DocState = { ...state, seq };
+      const locked: DocState = { ...state, seq: { ...state.seq, [state.mode]: seq } };
       const { total } = computeTotals(state);
       const result = await commitDocument({
         docNumber,
@@ -191,7 +199,8 @@ export function Workspace() {
         data: locked,
       });
       setState(locked);
-      setCounters((c) => ({ ...c, [String(year)]: Math.max(c[String(year)] ?? 0, result.lastSeq) }));
+      const key = counterKey(year, state.mode);
+      setCounters((c) => ({ ...c, [key]: Math.max(c[key] ?? 0, result.lastSeq) }));
       setHistory(await fetchHistory());
       if (result.synced) {
         toast.success(`${docNumber} downloaded and saved`);

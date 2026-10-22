@@ -31,7 +31,20 @@ describe("invoice rules", () => {
   it("uses the next counter value unless a manual sequence is set", () => {
     const s = createEmptyState();
     expect(resolveSeq(s, 7)).toBe(8);
-    expect(resolveSeq({ ...s, seq: 20 }, 7)).toBe(20);
+    expect(resolveSeq({ ...s, seq: { invoice: 20, receipt: null } }, 7)).toBe(20);
+  });
+
+  it("numbers receipts from 08 and invoices from 04 using their own counters", () => {
+    const s = createEmptyState();
+    const receiptSeq = resolveSeq({ ...s, mode: "receipt" }, 7);
+    const invoiceSeq = resolveSeq({ ...s, mode: "invoice" }, 3);
+    expect(formatDocNumber(2026, receiptSeq)).toBe("G23923-2026-08");
+    expect(formatDocNumber(2026, invoiceSeq)).toBe("G23923-2026-04");
+  });
+
+  it("keeps a manual invoice number from leaking into the receipt", () => {
+    const s = { ...createEmptyState(), seq: { invoice: 4, receipt: null } };
+    expect(resolveSeq({ ...s, mode: "receipt" }, 7)).toBe(8);
   });
 
   it("totals line items as qty × unit price", () => {
