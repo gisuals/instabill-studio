@@ -72,10 +72,10 @@ function isoOrNull(value: unknown): string | null {
 export function normalizeState(raw: unknown): DocState {
   const base = createEmptyState();
   if (!raw || typeof raw !== "object") return base;
-  const r = raw as Record<string, unknown>;
+  const r = raw as Partial<Record<keyof DocState, unknown>>;
   const items = Array.isArray(r.items)
     ? r.items.slice(0, 100).map((it, i) => {
-        const o = (it ?? {}) as Record<string, unknown>;
+        const o = (it ?? {}) as Partial<Record<keyof LineItem, unknown>>;
         return {
           id: str(o.id, 64) || `item-${i + 1}`,
           title: str(o.title, 300),
@@ -112,7 +112,7 @@ export function toISODate(d: Date): string {
 }
 
 export function fromISODate(iso: string): Date {
-  const [y, m, d] = iso.split("-").map(Number);
+  const [y = 1970, m = 1, d = 1] = iso.split("-").map(Number);
   return new Date(y, m - 1, d);
 }
 
