@@ -243,6 +243,29 @@ export function resolveSeq(state: DocState, lastSeq: number): number {
   return state.seq[state.mode] ?? lastSeq + 1;
 }
 
+/** Saving only moves the automatic counter while automatic numbering is on. */
+export function shouldAdvanceCounter(state: DocState): boolean {
+  return state.autoNumber;
+}
+
+/**
+ * Turning automatic numbering on/off. Off: the number shown now is fixed so it can be edited.
+ * On: hand-typed numbers are cleared so both types follow their counters again.
+ */
+export function setAutoNumber(state: DocState, auto: boolean, currentSeq: number): DocState {
+  if (auto) return { ...state, autoNumber: true, seq: { invoice: null, receipt: null } };
+  return { ...state, autoNumber: false, seq: { ...state.seq, [state.mode]: currentSeq } };
+}
+
+/**
+ * Numbers for a fresh document. With automatic numbering the counters decide; with it off,
+ * the current type continues from the last hand-typed number so it isn't reused by accident.
+ */
+export function seqForNewDocument(state: DocState, currentSeq: number): DocState["seq"] {
+  if (state.autoNumber) return { invoice: null, receipt: null };
+  return { ...state.seq, [state.mode]: Math.min(99999, currentSeq + 1) };
+}
+
 // ---------- Money ----------
 
 export function lineAmount(item: LineItem): number {
@@ -272,6 +295,25 @@ export function discountLabel(state: DocState): string {
   return state.discountType === "percent" && state.discountValue > 0
     ? `Discount (${state.discountValue}%)`
     : "Discount";
+}
+
+export type ReceiptPaymentStatus =
+  | { kind: "none" }
+  | { kind: "settled" }
+  | { kind: "balance"; balance: number }
+  | { kind: "overpaid"; excess: number };
+
+/**
+ * Receipt rule: once a paid amount is entered, it is compared with the invoice total
+ * (after any discount). Equal = fully paid; less = a Balance row shows the remaining amount.
+ */
+export function receiptPaymentStatus(state: DocState): ReceiptPaymentStatus {
+  const { subTotal, paid } = computeTotals(state);
+  if (paid <= 0) return { kind: "none" };
+  const diff = round2(subTotal - paid);
+  if (diff === 0) return { kind: "settled" };
+  if (diff > 0) return { kind: "balance", balance: diff };
+  return { kind: "overpaid", excess: -diff };
 }
 
 export function formatMoney(n: number): string {
@@ -324,6 +366,8 @@ export function buildWhatsAppText(state: DocState, docNumber: string, today: Dat
     }
     lines.push(`Invoice Total: ₦${formatMoney(subTotal)}`);
     lines.push(`*Total Paid: ₦${formatMoney(paid)}*`);
+    const status = receiptPaymentStatus(state);
+    if (status.kind === "balance") lines.push(`*Balance: ₦${formatMoney(status.balance)}*`);
     if (state.projectDuration > 0) lines.push(`Project Duration: ${state.projectDuration} Days`);
   }
   lines.push("");
