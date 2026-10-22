@@ -117,7 +117,7 @@ export function ControlsPanel({
             <p className="mt-1.5 text-xs text-muted-foreground">
               {state.seq === null
                 ? `Auto: next number after ${String(lastSeq).padStart(2, "0")}`
-                : "Manual number — tap Auto to go back"}
+                : "Fixed number for this document — tap Auto for the next one"}
             </p>
           </div>
 

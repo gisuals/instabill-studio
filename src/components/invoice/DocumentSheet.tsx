@@ -16,7 +16,8 @@ interface DocumentSheetProps {
 }
 
 export const SHEET_WIDTH = 794;
-export const SHEET_HEIGHT = 1123;
+// A4 at 96dpi is 793.7 × 1122.5px; stay just under so the PDF never spills onto a blank page.
+export const SHEET_HEIGHT = 1120;
 
 function BrandMark() {
   return (

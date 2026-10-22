@@ -169,6 +169,9 @@
   background-color: var(--doc-paper);
   color: var(--doc-ink);
   font-family: var(--font-sans);
+  /* Canvas text drawing ignores kerning; match it so PDF spacing equals the preview */
+  font-kerning: none;
+  font-variant-ligatures: none;
   & * {
     border-color: var(--doc-rule);
   }
