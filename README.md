@@ -1,4 +1,4 @@
-# Receipt River Studio
+# InstaBill
 
 Build a clean, production-ready single-page Invoice and Receipt generator web app for "Gisuals" connected to a Supabase backend.
 
