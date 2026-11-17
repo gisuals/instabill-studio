@@ -69,7 +69,7 @@ export function createEmptyState(): DocState {
     discountValue: 0,
     discountType: "amount",
     projectDuration: 0,
-    paymentNotes: "",
+    paymentNotes: "1. 50% Upfront and complete the remaining balance when project is sent and over.\n2. Full payment.",
     seq: { invoice: null, receipt: null },
     autoNumber: true,
     issueDate: null,

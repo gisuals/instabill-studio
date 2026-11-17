@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { DocMode } from "@/lib/invoice";
 
@@ -18,7 +19,7 @@ export function ModeToggle({ mode, onChange, variant = "dark" }: ModeToggleProps
       role="tablist"
       aria-label="Document type"
       className={cn(
-        "inline-flex rounded-full p-1",
+        "relative inline-flex rounded-full p-1",
         variant === "dark" ? "bg-ink-raised" : "w-full bg-secondary",
       )}
     >
@@ -32,14 +33,27 @@ export function ModeToggle({ mode, onChange, variant = "dark" }: ModeToggleProps
             aria-selected={active}
             onClick={() => onChange(m.value)}
             className={cn(
-              "flex-1 rounded-full px-5 py-1.5 text-xs font-bold uppercase tracking-[0.12em] transition-all",
+              "relative z-10 flex-1 rounded-full px-5 py-1.5 text-xs font-bold uppercase tracking-[0.12em] transition-colors duration-200",
               active
-                ? "bg-primary text-primary-foreground shadow-float"
+                ? "text-primary-foreground"
                 : variant === "dark"
                   ? "text-ink-muted hover:text-ink-foreground"
                   : "text-muted-foreground hover:text-foreground",
             )}
           >
+            {/* Sliding Pill Indicator */}
+            {active && (
+              <motion.div
+                layoutId="activePill"
+                className="absolute inset-0 z-[-1] rounded-full bg-primary shadow-float"
+                transition={{
+                  type: "spring",
+                  stiffness: 500,
+                  damping: 30,
+                  mass: 0.8,
+                }}
+              />
+            )}
             {m.label}
           </button>
         );

@@ -256,30 +256,27 @@ export function Workspace() {
     <div className="flex min-h-screen flex-col">
       {/* Top bar */}
       <header className="no-print sticky top-0 z-40 bg-ink text-ink-foreground">
-        <div className="flex h-16 items-center justify-between gap-3 px-4 lg:px-6">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-extrabold text-primary-foreground">
-              G
+          <div className="grid h-16 grid-cols-[1fr_auto] items-center gap-3 px-4 lg:grid-cols-3 lg:px-6">
+            <div className="justify-self-start font-['Montserrat',sans-serif] leading-tight">
+              <p className="text-sm font-bold tracking-[0.04em]">INSTABILL</p>
+              <p className="text-[11px] text-ink-muted">by Gisuals</p>
             </div>
-            <div className="hidden leading-tight sm:block">
-              <p className="text-sm font-extrabold tracking-[0.14em]">GISUALS</p>
-              <p className="text-[11px] text-ink-muted">Invoice & Receipt Studio</p>
+
+            <div className="justify-self-end lg:justify-self-center">
+              <ModeToggle mode={state.mode} onChange={(mode) => update({ mode })} />
+            </div>
+
+            <div className="hidden items-center justify-self-end gap-2 lg:flex">
+              <SyncBadge status={status} />
+              <Button variant="whatsapp" onClick={handleWhatsApp}>
+                <MessageCircle /> Send to WhatsApp
+              </Button>
+              <Button onClick={handleDownload} disabled={busy}>
+                {busy ? <Loader2 className="animate-spin" /> : <Download />} Download PDF
+              </Button>
             </div>
           </div>
-
-          <ModeToggle mode={state.mode} onChange={(mode) => update({ mode })} />
-
-          <div className="flex items-center gap-2">
-            <SyncBadge status={status} />
-            <Button variant="whatsapp" className="hidden lg:inline-flex" onClick={handleWhatsApp}>
-              <MessageCircle /> Send to WhatsApp
-            </Button>
-            <Button className="hidden lg:inline-flex" onClick={handleDownload} disabled={busy}>
-              {busy ? <Loader2 className="animate-spin" /> : <Download />} Download PDF
-            </Button>
-          </div>
-        </div>
-      </header>
+        </header>
 
       <div className="flex flex-1">
         {/* Desktop controls */}
