@@ -1,6 +1,6 @@
 {
-  "name": "Instabill",
-  "short_name": "Instabill",
+  "name": "inre",
+  "short_name": "inre",
   "description": "Gisuals invoice and receipt generator.",
   "start_url": "/",
   "display": "standalone",
