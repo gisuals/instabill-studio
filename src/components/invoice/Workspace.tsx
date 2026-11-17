@@ -258,7 +258,7 @@ export function Workspace() {
       <header className="no-print sticky top-0 z-40 bg-ink text-ink-foreground">
           <div className="grid h-16 grid-cols-[1fr_auto] items-center gap-3 px-4 lg:grid-cols-3 lg:px-6">
             <div className="justify-self-start font-['Montserrat',sans-serif] leading-tight">
-              <p className="text-sm font-bold tracking-[0.04em]">INSTABILL</p>
+              <p className="text-sm font-bold tracking-[0.04em]">inre</p>
               <p className="text-[11px] text-ink-muted">by Gisuals</p>
             </div>
 

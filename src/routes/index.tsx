@@ -4,7 +4,7 @@ import { Workspace } from "@/components/invoice/Workspace";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Gisuals — Invoice & Receipt Generator" },
+      { title: "inre | Invoice & Receipt Generator for Business" },
       {
         name: "description",
         content: "Create, number and send Gisuals invoices and receipts as polished PDFs or WhatsApp messages.",

@@ -80,8 +80,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "inre" },
-      { name: "description", content: "Gisuals invoice and receipt generator." },
-      { name: "author", content: "Gisuals" },
+      { name: "description", content: "inre invoice and receipt generator." },
+      { name: "author", content: "inre" },
       { name: "theme-color", content: "#1A1A1A" },
     ],
     links: [
